@@ -496,6 +496,18 @@ RSpec.describe Doorkeeper::TokensController, type: :controller do
         )
       end
 
+      it "revokes the previous refresh_token of the token being introspected" do
+        previous_token = FactoryBot.create(:access_token, refresh_token: "refresh_token")
+        token_for_introspection.previous_refresh_token = previous_token.refresh_token
+        token_for_introspection.save!
+
+        request.headers["Authorization"] = "Bearer #{access_token.token}"
+
+        post :introspect, params: { token: token_for_introspection.token }
+
+        expect(previous_token.reload).to be_revoked
+      end
+
       it "responds with invalid_token error if authorized token doesn't have introspection scope" do
         access_token.update(scopes: "read write")
 
